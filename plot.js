@@ -1,4 +1,5 @@
 function selectableForceDirectedGraph() {
+
     var width = window.innerWidth,
 
     height = window.innerHeight,
@@ -82,10 +83,10 @@ function selectableForceDirectedGraph() {
 
     var vis = svg_graph.append("svg:g");
 
-    vis.attr('fill', 'red')
+    vis.attr('fill', 'skyblue')
     .attr('stroke', 'black')
     .attr('stroke-width', 1)
-    .attr('opacity', 0.5)
+    .attr('opacity', 0.75)
     .attr('id', 'vis')
 
 
@@ -166,11 +167,29 @@ function selectableForceDirectedGraph() {
     }
 
     d3.json("graph.json", function(error, graph) {
+
+        // Expand graph
+        graph.links.forEach(function(d) {
+
+            for (var i = 1; i < d.target.length; i++) {
+                var dcopy = new Object();
+                dcopy.name = d.name;
+                dcopy.source = d.source;
+                dcopy.target = d.target.slice(0);
+                dcopy.target = dcopy.target[i];
+                graph.links.push(dcopy);
+            }
+            d.target = d.target[0];
+        });
+
         nodeGraph = graph;
 
         graph.links.forEach(function(d) {
+            // assign the node objects to the "source" and "target" fields
             d.source = graph.nodes[d.source];
-            d.target = graph.nodes[d.target];
+            for (var i=0; i < d.target.length; i++) {
+                d.target[i] = graph.nodes[d.target[i]]
+            }
         });
 
         link = link.data(graph.links).enter().append("line")
@@ -178,7 +197,6 @@ function selectableForceDirectedGraph() {
         .attr("y1", function(d) { return d.source.y; })
         .attr("x2", function(d) { return d.target.x; })
         .attr("y2", function(d) { return d.target.y; });
-
 
         var force = d3.layout.force()
         .charge(-120)
@@ -219,7 +237,7 @@ function selectableForceDirectedGraph() {
             .style("color", "white")
             .style("font-family", "sans-serif")
             .style("font-size", "0.75rem")
-            .style("padding", "0.2rem")
+            .style("padding", "0.3rem")
             .style("background-color", "black")
             .style("opacity", 0.5)
             .style("border-radius", "0.5rem")
@@ -228,30 +246,48 @@ function selectableForceDirectedGraph() {
             .style("visibility", "hidden");
 
         node = node.data(graph.nodes).enter().append("circle")
-        .attr("r", 8)
-        .attr("cx", function(d) { return d.x; })
-        .attr("cy", function(d) { return d.y; })
-        .on("mouseover", function(d) {
-            return tooltip
-            .style("visibility", "visible")
-            .text(d.index);})
-        .on("mousemove", function(d) {
-            return tooltip.style("top", (d3.event.pageY-10)+"px")
-            .style("left",(d3.event.pageX+10)+"px");})
-        .on("mouseout", function(d) {
-            return tooltip.style("visibility", "hidden");})
-        .on("dblclick", function(d) { d3.event.stopPropagation(); })
-        .on("click", function(d) {
-            if (d3.event.defaultPrevented) return;
+            .attr("fill", function(d) {
+                if (d.type === ("Project")) {
+                    return "salmon";
+                }
+                else if (d.type === ("Alumni")) {
+                    return "gold";
+                }
+                return "skyblue";
+            })
+            .attr("r", function(d) {
+                if (d.type === ("Project")) {
+                    return 8;
+                }
+                return 4;
+            })
+            .attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; })
+            .on("mouseover", function(d) {
+                tooltip.style("visibility", "visible")
+                    .text(d.name);
+            })
+            .on("mousemove", function(d) {
+                return tooltip.style("top", (d3.event.pageY-10)+"px")
+                    .style("left",(d3.event.pageX+10)+"px");
+            })
+            .on("mouseout", function(d) {
+                return tooltip.style("visibility", "hidden");
+            })
+            .on("dblclick", function(d) {
+                d3.event.stopPropagation();
+            })
+            .on("click", function(d) {
+                if (d3.event.defaultPrevented) return;
 
-            if (!shiftKey) {
-                //if the shift key isn't down, unselect everything
-                node.classed("selected", function(p) { return p.selected =  p.previouslySelected = false; })
-            }
+                if (!shiftKey) {
+                    //if the shift key isn't down, unselect everything
+                    node.classed("selected", function(p) { return p.selected =  p.previouslySelected = false; })
+                }
 
-            // always select this node
-            d3.select(this).classed("selected", d.selected = !d.previouslySelected);
-        })
+                // always select this node
+                d3.select(this).classed("selected", d.selected = !d.previouslySelected);
+            })
 
         .on("mouseup", function(d) {
             //if (d.selected && shiftKey) d3.select(this).classed("selected", d.selected = false);
@@ -273,7 +309,6 @@ function selectableForceDirectedGraph() {
               };
 
               force.on("tick", tick);
-
     });
 
 
@@ -316,4 +351,5 @@ function selectableForceDirectedGraph() {
         brush.select('.background').style('cursor', 'auto')
         svg_graph.call(zoomer);
     }
+
 }
